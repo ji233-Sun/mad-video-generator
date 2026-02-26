@@ -85,7 +85,7 @@
 </head>
 <body>
     <h1>MAD Video Generator</h1>
-    <p class="subtitle">上传 MIDI 与图片，根据音符节奏生成缩放动画视频</p>
+    <p class="subtitle">上传 MIDI 与图片，根据音符节奏生成缩放动画视频（每个音符触发图片由大变小）</p>
 
     <div class="section">
         <div class="section-title">文件上传</div>
@@ -112,7 +112,7 @@
         </div>
         <div class="settings-grid">
             <div class="setting-item">
-                <label for="maxScale">最大缩放倍数</label>
+                <label for="maxScale">缩小倍率（2 = 最小缩到 1/2）</label>
                 <input type="number" id="maxScale" value="2" min="1.1" max="10" step="0.1">
             </div>
             <div class="setting-item">

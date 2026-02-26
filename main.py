@@ -105,6 +105,33 @@ def hex_to_bgr(hex_color: str) -> tuple[int, int, int]:
     return (b, g, r)
 
 
+def cubic_bezier_ease_out(t: float) -> float:
+    """三次贝塞尔缓动曲线 (ease-out: 0.0, 0.0, 0.58, 1.0)。
+
+    快速开始，缓慢到达终点。
+    使用二分法求解贝塞尔 x(t) = target_x 对应的 y 值。
+    """
+    # 控制点: P0=(0,0), P1=(0, 0), P2=(0.58, 1), P3=(1, 1)
+    p1x, p1y = 0.0, 0.0
+    p2x, p2y = 0.58, 1.0
+
+    def bezier_x(s: float) -> float:
+        return 3 * p1x * s * (1 - s) ** 2 + 3 * p2x * s ** 2 * (1 - s) + s ** 3
+
+    def bezier_y(s: float) -> float:
+        return 3 * p1y * s * (1 - s) ** 2 + 3 * p2y * s ** 2 * (1 - s) + s ** 3
+
+    # 二分法求 s 使得 bezier_x(s) ≈ t
+    lo, hi = 0.0, 1.0
+    for _ in range(20):
+        mid = (lo + hi) / 2
+        if bezier_x(mid) < t:
+            lo = mid
+        else:
+            hi = mid
+    return bezier_y((lo + hi) / 2)
+
+
 def generate_video(
     midi_path: str,
     image_path: str,
@@ -118,7 +145,8 @@ def generate_video(
 ) -> str:
     """根据 MIDI 音符生成缩放动画视频。
 
-    每个音符触发图片从小（1x）到大（max_scale）的缩放动画，
+    每个音符触发图片从大（填满画布）到小（1/max_scale）的缩小动画，
+    使用贝塞尔 ease-out 缓动曲线。
     可选在每个音符处水平翻转图片。
     图片居中放置在指定背景色的画布上。
     """
@@ -136,8 +164,8 @@ def generate_video(
     img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
     orig_h, orig_w = img_array.shape[:2]
 
-    # 计算基础尺寸：在 max_scale 时图片恰好填满画布
-    scale_fit = min(width / orig_w, height / orig_h) / max_scale
+    # 基础尺寸：scale=1.0 时恰好填满画布（contain 方式）
+    scale_fit = min(width / orig_w, height / orig_h)
     base_w = int(orig_w * scale_fit)
     base_h = int(orig_h * scale_fit)
 
@@ -161,7 +189,7 @@ def generate_video(
     for frame_no in range(total_frames):
         current_time = frame_no / fps
 
-        # 在第一个音符之前，保持最小缩放，音符计数为 0
+        # 在第一个音符之前，保持满画布，音符计数为 0
         if current_time < note_times[0]:
             progress = 0.0
             note_count = 0
@@ -183,6 +211,7 @@ def generate_video(
                 progress = (current_time - start_t) / (end_t - start_t)
                 progress = max(0.0, min(1.0, progress))
             else:
+                # 最后一个音符之后，保持最小
                 progress = 1.0
 
         # 选择正常或翻转的基础图（奇数音符翻转）
@@ -191,14 +220,12 @@ def generate_video(
         else:
             src_img = img_base
 
-        # 缩放因子从 1.0 到 max_scale
-        current_scale = 1.0 + (max_scale - 1.0) * progress
-        disp_w = int(base_w * current_scale)
-        disp_h = int(base_h * current_scale)
-
-        if disp_w < 1 or disp_h < 1:
-            writer.write(bg_frame)
-            continue
+        # 贝塞尔缓动 + 由大变小：scale 从 1.0 缩小到 1/max_scale
+        eased = cubic_bezier_ease_out(progress)
+        min_scale = 1.0 / max_scale
+        current_scale = 1.0 - (1.0 - min_scale) * eased
+        disp_w = max(1, int(base_w * current_scale))
+        disp_h = max(1, int(base_h * current_scale))
 
         img_scaled = cv2.resize(src_img, (disp_w, disp_h), interpolation=cv2.INTER_LINEAR)
 
