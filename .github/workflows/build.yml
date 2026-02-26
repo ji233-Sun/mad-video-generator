@@ -16,8 +16,10 @@ jobs:
         include:
           - os: macos-latest
             artifact: mad-macos
+            sep: ":"
           - os: windows-latest
             artifact: mad-windows
+            sep: ";"
 
     runs-on: ${{ matrix.os }}
 
@@ -31,11 +33,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pyinstaller flask mido Pillow opencv-python-headless
+          pip install pyinstaller flask mido Pillow opencv-python-headless numpy
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile --name mad --add-data "templates:templates" main.py
+          pyinstaller --onefile --name mad --add-data "templates${{ matrix.sep }}templates" main.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

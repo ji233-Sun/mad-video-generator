@@ -3,29 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI 图片翻转视频生成器</title>
+    <title>MAD Video Generator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; padding: 2rem; max-width: 640px; margin: 0 auto; }
-        h1 { margin-bottom: 1.5rem; font-size: 1.5rem; }
-        .section { background: #fff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-        label { display: block; margin-bottom: .5rem; font-weight: 600; }
-        input[type="file"] { margin-bottom: 1rem; }
-        button { background: #4a90d9; color: #fff; border: none; padding: .6rem 1.4rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
-        button:disabled { opacity: .5; cursor: not-allowed; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0f0f0f; color: #e0e0e0;
+            padding: 2rem; max-width: 680px; margin: 0 auto;
+        }
+        h1 { margin-bottom: .3rem; font-size: 1.6rem; color: #fff; }
+        .subtitle { color: #888; font-size: .9rem; margin-bottom: 1.5rem; }
+        .section {
+            background: #1a1a1a; border: 1px solid #2a2a2a;
+            border-radius: 10px; padding: 1.4rem; margin-bottom: 1rem;
+        }
+        .section-title { font-size: .95rem; font-weight: 600; color: #aaa; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .5px; }
+        label { display: block; margin-bottom: .4rem; font-weight: 500; font-size: .9rem; }
+        input[type="file"] { margin-bottom: 1rem; color: #ccc; font-size: .9rem; }
+        input[type="file"]::file-selector-button {
+            background: #2a2a2a; color: #e0e0e0; border: 1px solid #444;
+            padding: .4rem .8rem; border-radius: 5px; cursor: pointer; margin-right: .6rem;
+        }
+        input[type="file"]::file-selector-button:hover { background: #333; }
+        button {
+            background: #4a90d9; color: #fff; border: none;
+            padding: .55rem 1.4rem; border-radius: 6px; cursor: pointer; font-size: .95rem;
+            transition: background .2s;
+        }
+        button:disabled { opacity: .4; cursor: not-allowed; }
         button:hover:not(:disabled) { background: #357abd; }
+
         .track-list { list-style: none; margin: .5rem 0; }
-        .track-list li { padding: .4rem 0; }
-        .track-list label { font-weight: normal; display: inline; cursor: pointer; }
-        #status { margin-top: 1rem; color: #666; }
-        a.download { display: inline-block; margin-top: 1rem; color: #4a90d9; font-weight: 600; text-decoration: none; }
+        .track-list li { padding: .35rem 0; }
+        .track-list label { font-weight: normal; display: inline; cursor: pointer; font-size: .9rem; }
+        .track-list input[type="radio"] { margin-right: .4rem; accent-color: #4a90d9; }
+
+        .settings-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: .8rem 1.2rem;
+        }
+        .setting-item label { font-size: .85rem; color: #999; margin-bottom: .25rem; }
+        .setting-item input, .setting-item select {
+            width: 100%; padding: .4rem .6rem;
+            background: #222; border: 1px solid #3a3a3a; border-radius: 5px;
+            color: #e0e0e0; font-size: .9rem;
+        }
+        .setting-item select { cursor: pointer; }
+        .setting-item input[type="color"] {
+            height: 36px; padding: 2px 4px; cursor: pointer;
+        }
+        .setting-item input:focus, .setting-item select:focus {
+            outline: none; border-color: #4a90d9;
+        }
+
+        #status { margin-top: 1rem; color: #888; font-size: .9rem; }
+        a.download {
+            display: inline-block; margin-top: 1rem;
+            color: #4a90d9; font-weight: 600; text-decoration: none; font-size: .95rem;
+        }
         a.download:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <h1>MIDI 图片翻转视频生成器</h1>
+    <h1>MAD Video Generator</h1>
+    <p class="subtitle">上传 MIDI 与图片，根据音符节奏生成缩放动画视频</p>
 
     <div class="section">
+        <div class="section-title">文件上传</div>
         <label for="midi">MIDI 文件</label>
         <input type="file" id="midi" accept=".mid,.midi">
         <label for="image">图片</label>
@@ -34,9 +78,38 @@
     </div>
 
     <div class="section" id="trackSection" style="display:none">
-        <label>选择轨道</label>
+        <div class="section-title">选择轨道</div>
         <ul class="track-list" id="trackList"></ul>
-        <button id="generateBtn" onclick="generate()">生成视频</button>
+    </div>
+
+    <div class="section" id="settingsSection" style="display:none">
+        <div class="section-title">视频设置</div>
+        <div class="settings-grid">
+            <div class="setting-item">
+                <label for="maxScale">最大缩放倍数</label>
+                <input type="number" id="maxScale" value="2" min="1.1" max="10" step="0.1">
+            </div>
+            <div class="setting-item">
+                <label for="resolution">分辨率</label>
+                <select id="resolution">
+                    <option value="1280x720">720p (1280×720)</option>
+                    <option value="1920x1080" selected>1080p (1920×1080)</option>
+                    <option value="2560x1440">2K (2560×1440)</option>
+                    <option value="3840x2160">4K (3840×2160)</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label for="fps">帧率 (FPS)</label>
+                <input type="number" id="fps" value="30" min="15" max="120" step="1">
+            </div>
+            <div class="setting-item">
+                <label for="bgColor">背景颜色</label>
+                <input type="color" id="bgColor" value="#00ff00">
+            </div>
+        </div>
+        <div style="margin-top: 1rem;">
+            <button id="generateBtn" onclick="generate()">生成视频</button>
+        </div>
     </div>
 
     <div id="status"></div>
@@ -58,6 +131,7 @@
             document.getElementById('status').textContent = '上传中...';
             document.getElementById('result').innerHTML = '';
             document.getElementById('trackSection').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
 
             try {
                 const res = await fetch('/upload', { method: 'POST', body: fd });
@@ -72,14 +146,14 @@
                     li.innerHTML = `<label><input type="radio" name="track" value="${t.index}"> ${t.name}（${t.notes} 个音符）</label>`;
                     list.appendChild(li);
                 });
-                // 默认选中第一个有音符的轨道
                 const first = data.tracks.find(t => t.notes > 0);
                 if (first) {
                     const radio = list.querySelector(`input[value="${first.index}"]`);
                     if (radio) radio.checked = true;
                 }
                 document.getElementById('trackSection').style.display = '';
-                document.getElementById('status').textContent = '请选择轨道后点击生成';
+                document.getElementById('settingsSection').style.display = '';
+                document.getElementById('status').textContent = '请选择轨道、调整设置后点击生成';
             } catch (e) {
                 alert('上传失败: ' + e.message);
             } finally {
@@ -95,11 +169,20 @@
             document.getElementById('status').textContent = '生成中，请稍候...';
             document.getElementById('result').innerHTML = '';
 
+            const body = {
+                session_id: sessionId,
+                track_index: parseInt(selected.value),
+                max_scale: parseFloat(document.getElementById('maxScale').value),
+                resolution: document.getElementById('resolution').value,
+                fps: parseInt(document.getElementById('fps').value),
+                bg_color: document.getElementById('bgColor').value,
+            };
+
             try {
                 const res = await fetch('/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId, track_index: parseInt(selected.value) })
+                    body: JSON.stringify(body),
                 });
                 const data = await res.json();
                 if (!res.ok) { alert(data.error); return; }
