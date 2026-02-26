@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# PyInstaller
+*.spec
+
+# Uploaded & generated files
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep

@@ -1,0 +1,12 @@
+[project]
+name = "mad"
+version = "0.1.0"
+description = "MIDI image flip video generator"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask",
+    "mido",
+    "Pillow",
+    "opencv-python",
+]
