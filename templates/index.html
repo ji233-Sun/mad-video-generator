@@ -56,6 +56,25 @@
             outline: none; border-color: #4a90d9;
         }
 
+        .toggle-row {
+            display: flex; align-items: center; gap: .6rem;
+            margin-bottom: .8rem; padding-bottom: .8rem; border-bottom: 1px solid #2a2a2a;
+        }
+        .toggle-row label { margin: 0; font-size: .9rem; color: #ccc; cursor: pointer; }
+        .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider {
+            position: absolute; inset: 0; background: #333; border-radius: 12px;
+            cursor: pointer; transition: background .2s;
+        }
+        .switch .slider::before {
+            content: ""; position: absolute; width: 18px; height: 18px;
+            left: 3px; bottom: 3px; background: #aaa; border-radius: 50%;
+            transition: transform .2s, background .2s;
+        }
+        .switch input:checked + .slider { background: #4a90d9; }
+        .switch input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+
         #status { margin-top: 1rem; color: #888; font-size: .9rem; }
         a.download {
             display: inline-block; margin-top: 1rem;
@@ -84,6 +103,13 @@
 
     <div class="section" id="settingsSection" style="display:none">
         <div class="section-title">视频设置</div>
+        <div class="toggle-row">
+            <label class="switch">
+                <input type="checkbox" id="flip" checked>
+                <span class="slider"></span>
+            </label>
+            <label for="flip">每个音符水平翻转图片</label>
+        </div>
         <div class="settings-grid">
             <div class="setting-item">
                 <label for="maxScale">最大缩放倍数</label>
@@ -176,6 +202,7 @@
                 resolution: document.getElementById('resolution').value,
                 fps: parseInt(document.getElementById('fps').value),
                 bg_color: document.getElementById('bgColor').value,
+                flip: document.getElementById('flip').checked,
             };
 
             try {

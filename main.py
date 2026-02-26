@@ -114,10 +114,12 @@ def generate_video(
     height: int = 1080,
     fps: int = 30,
     bg_color: str = "#00ff00",
+    flip: bool = True,
 ) -> str:
     """根据 MIDI 音符生成缩放动画视频。
 
     每个音符触发图片从小（1x）到大（max_scale）的缩放动画，
+    可选在每个音符处水平翻转图片。
     图片居中放置在指定背景色的画布上。
     """
     mid = mido.MidiFile(midi_path)
@@ -139,8 +141,9 @@ def generate_video(
     base_w = int(orig_w * scale_fit)
     base_h = int(orig_h * scale_fit)
 
-    # 预缩放到基础尺寸，后续从此尺寸放大更高效
+    # 预缩放到基础尺寸及其翻转版本
     img_base = cv2.resize(img_array, (base_w, base_h), interpolation=cv2.INTER_AREA)
+    img_base_flipped = cv2.flip(img_base, 1)
 
     bgr = hex_to_bgr(bg_color)
     bg_frame = np.full((height, width, 3), bgr, dtype=np.uint8)
@@ -158,9 +161,10 @@ def generate_video(
     for frame_no in range(total_frames):
         current_time = frame_no / fps
 
-        # 在第一个音符之前，保持最小缩放
+        # 在第一个音符之前，保持最小缩放，音符计数为 0
         if current_time < note_times[0]:
             progress = 0.0
+            note_count = 0
         else:
             # 找到当前所处的音符区间
             idx = 0
@@ -171,14 +175,21 @@ def generate_video(
             else:
                 idx = len(note_times) - 1
 
+            note_count = idx + 1  # 已经过的音符数量（从第 1 个开始）
+
             if idx < len(note_times) - 1:
                 start_t = note_times[idx]
                 end_t = note_times[idx + 1]
                 progress = (current_time - start_t) / (end_t - start_t)
                 progress = max(0.0, min(1.0, progress))
             else:
-                # 最后一个音符之后，保持最大缩放
                 progress = 1.0
+
+        # 选择正常或翻转的基础图（奇数音符翻转）
+        if flip and note_count % 2 == 1:
+            src_img = img_base_flipped
+        else:
+            src_img = img_base
 
         # 缩放因子从 1.0 到 max_scale
         current_scale = 1.0 + (max_scale - 1.0) * progress
@@ -189,7 +200,7 @@ def generate_video(
             writer.write(bg_frame)
             continue
 
-        img_scaled = cv2.resize(img_base, (disp_w, disp_h), interpolation=cv2.INTER_LINEAR)
+        img_scaled = cv2.resize(src_img, (disp_w, disp_h), interpolation=cv2.INTER_LINEAR)
 
         frame = bg_frame.copy()
 
@@ -228,6 +239,7 @@ def generate():
     resolution = data.get("resolution", "1920x1080")
     fps = int(data.get("fps", 30))
     bg_color = data.get("bg_color", "#00ff00")
+    flip = bool(data.get("flip", True))
 
     try:
         w, h = map(int, resolution.split("x"))
@@ -238,7 +250,8 @@ def generate():
     try:
         filename = generate_video(
             session["midi"], session["image"], track_index,
-            max_scale=max_scale, width=w, height=h, fps=fps, bg_color=bg_color,
+            max_scale=max_scale, width=w, height=h, fps=fps,
+            bg_color=bg_color, flip=flip,
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
