@@ -292,6 +292,13 @@ def download(filename):
 
 
 if __name__ == "__main__":
+    import logging
+
+    # 抑制 Flask/Werkzeug 的 development server 提示
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    import flask.cli
+    flask.cli.show_server_banner = lambda *args, **kwargs: None
+
     port = 5000
     url = f"http://127.0.0.1:{port}"
 

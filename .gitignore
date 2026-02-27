@@ -17,3 +17,4 @@ uploads/*
 !uploads/.gitkeep
 outputs/*
 !outputs/.gitkeep
+.ace-tool/
